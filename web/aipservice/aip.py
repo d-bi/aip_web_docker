@@ -18,6 +18,7 @@ import shutil
 from collections import OrderedDict
 import numpy as np
 import scipy.stats as stat
+import re
 
 logger = None
  
@@ -99,15 +100,24 @@ def samparser_genome(sfile, frag_min, frag_max, three_prime):
             # Ignore header files
             if line[0] != '@':
                 fields = line.split('\t')
-                if len(fields) > 19:
-                    multi_flag = fields[19].strip()  # Sometimes there are "NH:i:1\n"
-                    # If the read has more than one alignment then report it as multiple mapping
-                    if multi_flag != 'NH:i:1':
-                        multi_align = True
-                    else:
-                        multi_align = False
-                else:
+                ## Original script is not compatible with Wang et al. data
+                # if len(fields) > 19:
+                #     multi_flag = fields[19].strip()  # Sometimes there are "NH:i:1\n"
+                #     # If the read has more than one alignment then report it as multiple mapping
+                #     if multi_flag != 'NH:i:1':
+                #         multi_align = True
+                #     else:
+                #         multi_align = False
+                # else:
+                #     multi_align = False
+                
+                ## DBi fix for Wang et al. data
+                m = re.search('NH:i:([0-9]+)', line)
+                if int(m.group(1)) == 1:
                     multi_align = False
+                else:
+                    multi_align = True
+
                 sam_flag = int(fields[1])
                 chr_no = fields[2]
                 read_length = len(fields[9])
