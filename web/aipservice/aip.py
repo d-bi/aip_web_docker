@@ -19,6 +19,7 @@ from collections import OrderedDict
 import numpy as np
 import scipy.stats as stat
 import re
+import pickle
 
 logger = None
  
@@ -775,7 +776,7 @@ def generate_asite_profiles_nucleotide(folder, frag_min, frag_max, read_count_di
                             # -1 because the Asite profile is a list with index 0
                             asite[pos - offset - 1] += read_count_dict[fsize][gene][pos]
                 else:
-                    if offset:
+                    if offset: 
                         # Only those pos before 0 matter when offseted map to a position in CDS
                         if pos < 0 <= pos+offset < len(asite):
                             asite[pos+offset] += read_count_dict[fsize][gene][pos]
@@ -824,10 +825,13 @@ def generate_asite_profiles(frag_min, frag_max, offsets, scratch, folder, three_
                     else:
                         read_count_dict[fsize][gene][i] = reads_list[i - start_index]
     logger.info('Parsed the CDS read counts.')
-    
+#    pickle.dump(read_count_dict, open(os.path.join(folder, "read_count_dict.p"), "wb")) ## DEBUG
+#    pickle.dump(dict_len, open(os.path.join(folder, "dict_len.p"), "wb")) ## DEBUG
+
     # generate A-site_profiles_nucleotide.tab
     map_frame0 = ""
     offsets = parse_offset_values(offsets, frag_min, frag_max)
+#    pickle.dump(offsets, open(os.path.join(folder, "offsets_dict_profile_fcn.p"), "wb")) ## DEBUG
     asite_profiles = generate_asite_profiles_nucleotide(folder, frag_min, frag_max, read_count_dict, offsets, dict_len, three_prime, map_frame0)
     
     # generate A-site_profiles_nucleotide_mapped_to_frame0.tab
@@ -1768,14 +1772,15 @@ def run_offset(folder,
 
         if get_profile:
             offset_dict = {fsize: {frame: offset_dict[fsize][frame]["off"] for frame in offset_dict[fsize]} for fsize in offset_dict}
+#            pickle.dump(offset_dict, open(os.path.join(folder, "offset_dict.p"), "wb")) ## DEBUG
             generate_asite_profiles(min_frag, max_frag, offset_dict, scratch, folder, three_prime)
         
         # remove the scratch folder
-        shutil.rmtree(scratch)
+#        shutil.rmtree(scratch)
     except Exception as e:
         logger.error("Error getting A-site offsets: %s", str(e))
         # remove the scratch folder
-        shutil.rmtree(scratch)
+#        shutil.rmtree(scratch)
         raise e
 
 def get_offset_dict_from_file(offset_file): 
@@ -1836,33 +1841,36 @@ def run_profile(folder,
     """
     # set filer logger
     set_logger(folder)
+
+    # assume preprocessing done
     
     # create the scratch folder    
     scratch = os.path.join(folder, "scratch")
     if not os.path.exists(scratch):
         os.makedirs(scratch, exist_ok=True)
+        assert False, "Should not call profiling without offset data/scratch"
         
     try: 
-        sam_file = processBamFile(scratch, bam_file)
-
-        annotation_file = processAnnotationFile(scratch, species, annotation_file)
-
-        if alignment_type == "genome" :
-            count_dict, mul_count_dict = samparser_genome(sam_file, min_frag, max_frag, three_prime)
-            logger.info('Parsed the SAM file. Starting to quantify CDS read counts')
-            create_cds_counts_genome(annotation_file, fasta_file, scratch, count_dict, mul_count_dict, min_frag, max_frag, three_prime, overlap)
-        else:
-            count_dict, mul_count_dict, total_dict = samparser_transcriptome(sam_file, min_frag, max_frag, three_prime)
-            logger.info('Parsed the SAM file aligned to the transcriptome. Starting to quantify CDS read counts')
-            create_cds_counts_transcriptome(annotation_file, fasta_file, scratch, count_dict, mul_count_dict, total_dict, min_frag, max_frag, three_prime)
+#        sam_file = processBamFile(scratch, bam_file)
+#
+#        annotation_file = processAnnotationFile(scratch, species, annotation_file)
+#
+#        if alignment_type == "genome" :
+#            count_dict, mul_count_dict = samparser_genome(sam_file, min_frag, max_frag, three_prime)
+#            logger.info('Parsed the SAM file. Starting to quantify CDS read counts')
+#            create_cds_counts_genome(annotation_file, fasta_file, scratch, count_dict, mul_count_dict, min_frag, max_frag, three_prime, overlap)
+#        else:
+#            count_dict, mul_count_dict, total_dict = samparser_transcriptome(sam_file, min_frag, max_frag, three_prime)
+#            logger.info('Parsed the SAM file aligned to the transcriptome. Starting to quantify CDS read counts')
+#            create_cds_counts_transcriptome(annotation_file, fasta_file, scratch, count_dict, mul_count_dict, total_dict, min_frag, max_frag, three_prime)
 
         offset_dict = get_offset_dict_from_file(offset_file)
         generate_asite_profiles(min_frag, max_frag, offset_dict, scratch, folder, three_prime)
         
         # remove the scratch folder
-        shutil.rmtree(scratch)
+#        shutil.rmtree(scratch)
     except Exception as e:
         logger.error("Error getting A-site profiles: %s", str(e))
         # remove the scratch folder
-        shutil.rmtree(scratch)
+#        shutil.rmtree(scratch)
         raise e
